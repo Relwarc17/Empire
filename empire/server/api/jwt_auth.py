@@ -3,8 +3,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+import jwt
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
@@ -12,6 +11,8 @@ from starlette import status
 from empire.server.api.v2.shared_dependencies import CurrentSession
 from empire.server.core.db import models
 from empire.server.core.db.base import SessionLocal
+
+import bcrypt
 
 # This all comes from the amazing fastapi docs: https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/
 SECRET_KEY = SessionLocal().query(models.Config).first().jwt_secret_key
@@ -30,17 +31,16 @@ class TokenData(BaseModel):
     username: str | None = None
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 
 def get_password_hash(password):
-    return pwd_context.hash(password)
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode('utf-8'), salt)
 
 
 def get_user(db, username: str) -> models.User:
