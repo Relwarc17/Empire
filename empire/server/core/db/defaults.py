@@ -3,23 +3,21 @@ import logging
 import os
 import random
 import string
-
-from passlib import pwd
-from passlib.context import CryptContext
+import bcrypt
 
 from empire.server.core.config import empire_config
 from empire.server.core.db import models
 
 database_config = empire_config.database.defaults
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 log = logging.getLogger(__name__)
 
 
 def get_default_hashed_password():
-    password = database_config.password
-    return pwd_context.hash(password)
+    password = database_config.password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password, salt)
+
 
 
 def get_default_user():
